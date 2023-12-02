@@ -1,0 +1,25 @@
+html{
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+#familyTree{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: flex-start;
+    align-content: stretch;
+}
+
+.person{
+    flex-grow: 1;
+    width: 200px;
+    padding: 8px 32px;
+    margin: 8px;
+    border: 1px solid black;
+    text-align: center;
+}
+
+.person h2{
+    font-size: 1.25em;
+}
