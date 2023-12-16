@@ -3,29 +3,37 @@ html *{
     box-sizing:border-box;
 }
 
-/*SECTIONS AND GROUPS*/
-#familyTree{
+body{
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-evenly;
-    align-items: flex-start;
-    align-content: center;
+    justify-content: center;
+    align-items: center;
+    width: auto;
     min-height: 100vh;
 }
 
-.couple{
+/*SECTIONS AND GROUPS*/
+#familyTree{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap : 4em;
+}
+
+.group{
     display: flex;
-    flex-wrap:nowrap;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
+}
+
+.progeny{
+    gap: 24px;
 }
 
 /*CARDS*/
 .person{
     flex-grow: 0;
     flex-shrink: 0;
-    width: 250px;
-    max-width: 250px;
+    width: 296px;
     padding: 8px 32px;
     border: 1px solid black;
     text-align: center;
@@ -36,8 +44,11 @@ html *{
 }
 
 /*CONNECTIONS*/
+.connection{
+    background-color: black;
+}
+
 .wedding{
     height: 8px;
     width: 48px;
-    background-color: black;
 }

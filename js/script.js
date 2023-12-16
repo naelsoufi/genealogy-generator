@@ -24,13 +24,13 @@ const CURRENT_YEAR = 5955;
 
 // COUPLE
 const AGE_AT_FIRST_CHILD = {'min' : 15, 'max' : 30};
+const AGE_RANGE_FOR_MAX_FERTILITY = {'min' : 30, 'max' : 40};
+const YEARS_BETWEEN_PREGNANCIES = {'min' : 1, 'max' : 4};
 
 // DEATH
 //---CHILDREN
-const MISCARRIAGE_RATE = 0.33;
-const DEATH_RATE_AT_INFANCY = 0.33;
-const DEATH_RATE_BEFORE_10 = 0.5;
-const YOUNG_ADULT_DEATH_RATE = 0.33;
+const DEATH_RATE_AT_INFANCY = 0.25;
+const DEATH_RATE_BEFORE_10 = 0.2339;
 const LIFE_EXPECTANCY_AT_10 = 32;
 
 //---ADULT
@@ -106,14 +106,6 @@ function flipCoin(){
     return false;
 }
 
-function checkIfFirstPerson(){
-    if(FAMILY_TREE_SECTION.hasChildNodes()) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
 // PERSON
 //--- SEX
 function generatePersonSex(){
@@ -125,9 +117,17 @@ function generatePersonSex(){
     {
         sex = FEMALE;
     }
+    return sex;
 }
+
 //--- NAME
 function generatePersonFirstName(person){
+    let firstNameTable = (person.sex == MALE)? MEN_COMMON_FIRST_NAMES_LIST : WOMEN_COMMON_FIRST_NAMES_LIST;
+    let diceRoll = rollDice(firstNameTable.length - 1);
+    let firstName = firstNameTable[diceRoll];
+
+    return firstName;
+/*
     if (person.sex == MALE){
         let tableSize = MEN_COMMON_FIRST_NAMES_LIST.length - 1;
         let diceRoll = rollDice(tableSize);
@@ -141,7 +141,7 @@ function generatePersonFirstName(person){
         let firstName = WOMEN_COMMON_FIRST_NAMES_LIST[diceRoll];
         
         return firstName;
-    }   
+    }   */
 }
 
 function generatePersonSurname(){
@@ -154,35 +154,74 @@ function generatePersonSurname(){
 function generatePersonFullName(person){
     let firstName = generatePersonFirstName(person);
     let surname = generatePersonSurname();
-
     let fullName = {firstName: firstName, surname: surname};
 
     return fullName;
 }
 
-//--- BIRTH AND DEATH
-function ForcedLifeDates(){
+//--- LIFE AND DEATH
+function ForcedPersonAttributes(){
     this.adult = false;
-    this.birthYear = undefined;
     this.ageGap = undefined;
+    this.sex = undefined;
+    this.birthYear = undefined;
+    this.deathYear = undefined;
+    this.lifeExpectancy = undefined;
+    this.age = undefined;
+    this.surname = undefined;
 }
 
 // Did the couple reproduced before dying?
-function checkForFirstChild(couple){
-    let husbandLifeExpectancy = couple.husband.lifeExpectancy;
-    let wifeLifeExpectancy = couple.wife.lifeExpectancy;
-    
+function checkForProgeny(couple){ 
     let ageAtFirstChild = rollRandomDistribution(AGE_AT_FIRST_CHILD.max, AGE_AT_FIRST_CHILD.min);
-    // Check the year. Are husband and wife still alive when wife has the ageAtFirstChild ? If one of them is dead, no children
-    // Then make a function for number of pregnancies and then how much they are spaced (normal distribution with 1-5 years)
-    // Maybe only keep the ones that reached adulthood ? Also year of birth is important for the kids. That will generate a person
+
+    let yearForProgeny = couple.wife.birthYear + ageAtFirstChild;
+    
+    if (isAlive(couple.husband, yearForProgeny) && isAlive(couple.wife, yearForProgeny)) {
+        return yearForProgeny;
+    }
+    else {
+        return false;
+    }
 }
 
-function generatePersonLifeExpectancy(forcedLifeDates){
+function generateProgeny(yearFirstChild, couple){
+    let maxFertilityAge = rollRandomDistribution(AGE_RANGE_FOR_MAX_FERTILITY.max, AGE_RANGE_FOR_MAX_FERTILITY.min);
+    
+    let yearEndOfFertility = couple.wife.birthYear + maxFertilityAge;
+
+    let childBirthYear = yearFirstChild;
+
+    let progenyArray = [];
+
+    while ((isAlive(couple.husband, childBirthYear) && isAlive(couple.wife, childBirthYear)) && yearEndOfFertility >= childBirthYear){
+        let forcedPersonAttributes = new ForcedPersonAttributes();
+        forcedPersonAttributes.birthYear = childBirthYear;
+        forcedPersonAttributes.surname = couple.husband.surname;
+
+        progenyArray.push(generatePerson(forcedPersonAttributes));
+
+        childBirthYear += rollRandomDistribution(YEARS_BETWEEN_PREGNANCIES.max, YEARS_BETWEEN_PREGNANCIES.min, 4);
+    }
+
+    return progenyArray;
+
+}
+
+function isAlive(person, year){
+    
+    if (person.deathYear > year){
+        return true;
+    }
+
+    return false;
+}
+
+function generatePersonLifeExpectancy(forcedPersonAttributes){
     let personLifeExpectancy = undefined;
     let survivedToLifeExpectancy = false;
 
-    if (typeof forcedLifeDates == 'undefined' || forcedLifeDates.adult === false){
+    if (typeof forcedPersonAttributes == 'undefined' || forcedPersonAttributes.adult === false){
         /* CHILDHOOD */
         // Death before 1 years old
         let survivedFirstYear = checkDiceRollSuccess(roll1d100(), DEATH_RATE_AT_INFANCY * 100);
@@ -198,16 +237,10 @@ function generatePersonLifeExpectancy(forcedLifeDates){
             return personLifeExpectancy;
         }
         
-        // Survived 10 years old
-        survivedToLifeExpectancy = flipCoin();
-        if (survivedToLifeExpectancy === false){
-            personLifeExpectancy = rollDice(LIFE_EXPECTANCY_AT_10, 10);
-            //*TO-DO : If reached 20-22, start the child making process until dead
-            return personLifeExpectancy;
-        }
+        survivedToLifeExpectancy = true;     
     }
 
-    if (typeof forcedLifeDates != 'undefined' && forcedLifeDates.adult){
+    if (typeof forcedPersonAttributes != 'undefined' && forcedPersonAttributes.adult){
         // The adult didn't reach life expectancy but reached the age to reproduce
         survivedToLifeExpectancy = flipCoin();
         if (survivedToLifeExpectancy === false){
@@ -232,13 +265,8 @@ function generatePersonLifeExpectancy(forcedLifeDates){
     }
 }
 
-function generatePersonBirthYear(forcedLifeDates){
-    let personBirthYear = 0;
-    console.log(forcedLifeDates.birthYear);
-    if(forcedLifeDates.birthYear != undefined && forcedLifeDates.ageGap != undefined)
-    {
-        personBirthYear = forcedLifeDates.birthYear + forcedLifeDates.ageGap;
-    }
+function generatePersonBirthYear(forcedPersonAttributes = new ForcedPersonAttributes()){
+    let personBirthYear = (forcedPersonAttributes.ageGap)? forcedPersonAttributes.birthYear + forcedPersonAttributes.ageGap : 0;
     return personBirthYear;
 }
 
@@ -263,57 +291,49 @@ function Person(){
     this.age = 0;
 }
 
-function generatePerson(sex, forcedLifeDates){
+function generatePerson(forcedPersonAttributes = new ForcedPersonAttributes()){
     let person = new Person();
-    person.sex = sex || generatePersonSex();
+    
+    person.sex = forcedPersonAttributes.sex || generatePersonSex();
     
     let fullNameArray = generatePersonFullName(person);
     person.firstName = fullNameArray.firstName;
-    person.surname = fullNameArray.surname;
+    
+    person.surname = forcedPersonAttributes.surname || fullNameArray.surname;
     person.fullName = person.firstName + ' ' + person.surname;
 
-    if(forcedLifeDates){
-        person.birthYear = generatePersonBirthYear(forcedLifeDates);
-        person.lifeExpectancy = generatePersonLifeExpectancy(forcedLifeDates);
-    }
-    else
-    {
-        person.birthYear = generatePersonBirthYear();
-        person.lifeExpectancy = generatePersonLifeExpectancy();
-    }
+    person.birthYear = forcedPersonAttributes.birthYear || generatePersonBirthYear();
+    person.lifeExpectancy = (forcedPersonAttributes.adult)? generatePersonLifeExpectancy(forcedPersonAttributes) : generatePersonLifeExpectancy();
     
-    person.deathYear = generatePersonDeathYear(person.birthYear, person.lifeExpectancy);
+    person.deathYear = forcedPersonAttributes.deathYear || generatePersonDeathYear(person.birthYear, person.lifeExpectancy);
     person.age = person.deathYear-person.birthYear;
-    
+
     return person;
 }
 
 
 function generateCouple(){
     // Create the husband
-    let husbandForcedLifeDates = new ForcedLifeDates();
-    husbandForcedLifeDates.adult = true;
+    let husbandForcedPersonAttributes = new ForcedPersonAttributes();
+    husbandForcedPersonAttributes.adult = true;
+    husbandForcedPersonAttributes.sex = MALE;
     
-    let husband = generatePerson(MALE, husbandForcedLifeDates);
+    let husband = generatePerson(husbandForcedPersonAttributes);
 
     // Create wife
-    let wifeForcedLifeDates = new ForcedLifeDates();
-    wifeForcedLifeDates.adult = true;
-    wifeForcedLifeDates.birthYear = husband.birthYear;
-    wifeForcedLifeDates.ageGap = rollRandomDistribution(10,-5);
+    let wifeForcedPersonAttributes = new ForcedPersonAttributes();
+    wifeForcedPersonAttributes.adult = true;
+    wifeForcedPersonAttributes.sex = FEMALE;
+    wifeForcedPersonAttributes.birthYear = husband.birthYear;
+    wifeForcedPersonAttributes.ageGap = rollRandomDistribution(10,-5);
     
-    let wife = generatePerson(FEMALE, wifeForcedLifeDates);
+    let wife = generatePerson(wifeForcedPersonAttributes);
 
     let couple = {'husband' : husband, 'wife' : wife};
 
     return couple;
 }
 
-
-function generateProgeny(couple){
-    //Did they have a kid ?
-    let progenySurname = couple.husband.surname;
-}
 
 //---GENERATE CARDS
 function generatePersonCard(person){
@@ -340,7 +360,7 @@ function generateCoupleCard(couple){
     let wife = couple.wife;
 
     let coupleCard = document.createElement('div');
-    coupleCard.classList.add('couple');
+    coupleCard.classList.add('couple', 'group');
     
     let husbandCard = generatePersonCard(husband);
     let wifeCard = generatePersonCard(wife);
@@ -353,6 +373,24 @@ function generateCoupleCard(couple){
     coupleCard.appendChild(wifeCard);
 
     return coupleCard;
+}
+
+function generateProgenyCards(progenyArray){
+    let progenyCard = document.createElement('div');
+    progenyCard.classList.add('progeny', 'group');
+
+    for (let i = 0 ; i < progenyArray.length ; i++){
+        let childCard = generatePersonCard(progenyArray[i])
+        progenyCard.appendChild(childCard);
+
+        if(i < progenyArray.length - 1){
+            let siblingConnection = document.createElement('div');
+            siblingConnection.classList.add('connection','sibling');
+            progenyCard.appendChild(siblingConnection);
+        }
+    }
+
+    return progenyCard;
 }
 
 //---DRAW
@@ -371,3 +409,12 @@ addPerson(person);*/
 let couple = generateCouple();
 let coupleCard = generateCoupleCard(couple);
 drawCard(coupleCard);
+
+let progenyCheck = undefined;
+checkForProgeny = checkForProgeny(couple);
+
+if (checkForProgeny){
+    let progeny = generateProgeny(checkForProgeny, couple);
+    let progenyCard = generateProgenyCards(progeny);
+    drawCard(progenyCard);
+}
