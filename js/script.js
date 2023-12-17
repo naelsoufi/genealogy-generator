@@ -401,11 +401,23 @@ function drawCard(card){
 
 
 // Program
-//* TO DO : Button to add a person
-//* TO DO : Add Parents / Siblings / Children
-//* TO DO : Investigate drawing links between cards
-/*let person = new Person(generatePersonFullName(), generatePersonLifeDates());
-addPerson(person);*/
+//* TO DO : Transform the program to draw in SVG instead
+// Learn how to draw svg. Cards become SVG rectangles
+// Connect cards with lines depending on the relationship
+// Probably need to have a family array with each line being a member of the family with an ID
+// The object could also have a connection to others like "father", "mother", "children", "siblings"
+// Having this family tree array could help with the SVG drawing calculations to place the persons at the right place
+// I would need to check how to move an object with SVG though when the whole thing updates.
+// Now that I think about it, maybe since this first version can't be edited, maybe I could just not draw stuff until I'm ready
+// How would that work exactly is a mystery and does it make things more complex than they need to
+// Probably not, I will always need to check stuff and update so might as well draw once everything is settled.
+// So yeah, try SVG drawing and the family array and ID stuff
+// Then we go to the next big thing : add partners to kids that are still alive  when it's time to reproduce
+// Then they make kids and it keeps going like that until everyone is dead I guess.
+// Might need maybe an "end date" just in case it runs forever.
+// The id stuff is great, I wonder if it should mean more, like to link with uncles and aunts ?
+// Probably useless and overkill tbh.
+
 let couple = generateCouple();
 let coupleCard = generateCoupleCard(couple);
 drawCard(coupleCard);
